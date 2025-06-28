@@ -1,12 +1,11 @@
-name: Run Scraper 
+name: Run Scraper
 
 on:
+  # 9 AM – 12 AM (midnight) ET, every 30 min, Mon–Fri
   schedule:
-    # From 9:00 AM to 11:30 PM ET (13:00–23:30 UTC)
-    - cron: '*/30 13-23 * * 1-5'
-    # From 12:00 AM to 12:00 AM ET (00:00–04:00 UTC on next day), but still "Monday to Friday" local
-    - cron: '*/30 0-4 * * 2-6'
-  workflow_dispatch:
+    - cron: '*/30 13-23 * * 1-5'   # 09:00–23:30 ET
+    - cron: '*/30 0-4 * * 2-6'     # 00:00–04:00 ET  (Tue–Sat UTC)
+  workflow_dispatch:               # manual trigger button
 
 jobs:
   run-scraper:
@@ -19,11 +18,12 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: 3.10
+          python-version: "3.11"   # quotes → string, not 3.1
 
+      # Persist .last_seen.txt between runs
       - name: Restore cache for last_seen
-        id: cache
         uses: actions/cache@v4
+        id: cache
         with:
           path: .last_seen.txt
           key: last-seen-cache
@@ -32,9 +32,15 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Run scraper
-        run: python main.py
+        run: |
+          python - <<'PY'
+          import main
+          # Call your Cloud‑Function‑style handler once per run
+          main.scrape_handler(None)
+          PY
 
+      # Cache step already picks up the modified file automatically,
+      # but we keep a final step for clarity
       - name: Save updated last_seen to cache
         if: always()
         run: echo "Done"
-        # no need to update the cache explicitly — same cache key reuses updated file
