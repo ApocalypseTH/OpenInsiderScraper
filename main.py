@@ -3,7 +3,7 @@ import requests
 from bs4 import BeautifulSoup
 
 # Constants
-URL = "http://openinsider.com/screener?s=&o=&pl=&ph=&ll=&lh=&fd=365&fdr=&td=0&tdr=&fdlyl=&fdlyh=6&daysago=&xp=1&vl=25&vh=&ocl=1&och=&sic1=-1&sicl=100&sich=9999&isceo=1&iscfo=1&isvp=1&isdirector=1&istenpercent=1&grp=2&nfl=&nfh=&nil=3&nih=&nol=&noh=&v2l=&v2h=&oc2l=&oc2h=&sortcol=0&cnt=1&page=1"
+URL = "http://openinsider.com/screener?s=&o=&pl=&ph=&ll=&lh=&fd=365&fdr=&td=0&tdr=&fdlyl=&fdlyh=6&daysago=&xp=1&vl=25&vh=&ocl=1&och=&sic1=-1&sicl=100&sich=9999&isceo=1&iscfo=1&isvp=1&isdirector=1&istenpercent=1&grp=2&nfl=&nfh=&nil=2&nih=&nol=&noh=&v2l=&v2h=&oc2l=&oc2h=&sortcol=0&cnt=1&page=1"
 token = "7012997345:AAGft8E_tJ5JJXvF24Ivc-3G_F3bB69IvIw"
 chat_id = "54508698"
 TELEGRAM_BOT_URL = f"https://api.telegram.org/bot{token}/sendMessage"
