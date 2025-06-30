@@ -1,47 +1,63 @@
 name: Run Scraper
 
 on:
-  # 9 AM – 12 AM (midnight) ET, every 30 min, Mon–Fri
   schedule:
-    - cron: '*/30 13-23 * * 1-5'   # 09:00–23:30 ET
-    - cron: '*/30 0-4 * * 2-6'     # 00:00–04:00 ET  (Tue–Sat UTC)
-  workflow_dispatch:               # manual trigger button
+    - cron: '*/30 13-23 * * 1-5'   # 09:00–23:30 ET
+    - cron: '*/30 0-4  * * 2-6'    # 00:00–04:00 ET
+  workflow_dispatch:
 
 jobs:
   run-scraper:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write          # allow push via GITHUB_TOKEN
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      # 1️⃣  Checkout main (code) – fetch full history so we can reach branch `state`
+      - uses: actions/checkout@v3
         with:
-          python-version: "3.11"   # quotes → string, not 3.1
+          fetch-depth: 0
 
-      # Persist .last_seen.txt between runs
-      - name: Restore cache for last_seen
-        uses: actions/cache@v4
-        id: cache
+      # 2️⃣  Pull .last_seen.txt from branch `state` if it exists
+      - name: Retrieve last_seen from state branch
+        run: |
+          if git ls-remote --exit-code --heads origin state >/dev/null; then
+            git fetch origin state:state
+            git checkout state -- .last_seen.txt || true
+          else
+            echo "state branch does not exist yet"
+          fi
+
+      # 3️⃣  Set up Python
+      - uses: actions/setup-python@v4
         with:
-          path: .last_seen.txt
-          key: last-seen-cache
+          python-version: "3.11"
 
-      - name: Install dependencies
-        run: pip install -r requirements.txt
+      # 4️⃣  Install dependencies
+      - run: pip install -r requirements.txt
 
+      # 5️⃣  Run scraper (calls your Cloud‑Function‑style handler once)
       - name: Run scraper
         run: |
           python - <<'PY'
           import main
-          # Call your Cloud‑Function‑style handler once per run
           main.scrape_handler(None)
           PY
 
-      - name: Save last_seen cache
-        if: always()                    
-        uses: actions/cache/save@v4
-        with:
-          path: .last_seen.txt
-          key: last-seen-cache
+      # 6️⃣  Commit & push only if .last_seen.txt changed
+      - name: Commit updated last_seen
+        run: |
+          if git diff --quiet .last_seen.txt; then
+            echo "No change in last_seen – skipping commit."
+            exit 0
+          fi
+
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # switch (or create) branch `state`
+          git checkout -B state
+          git add .last_seen.txt
+          git commit -m "Update last_seen $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+          # push and overwrite remote state (low‑risk with single short file)
+          git push --force-with-lease origin state
