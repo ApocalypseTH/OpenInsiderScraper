@@ -39,8 +39,9 @@ jobs:
           main.scrape_handler(None)
           PY
 
-      # Cache step already picks up the modified file automatically,
-      # but we keep a final step for clarity
-      - name: Save updated last_seen to cache
-        if: always()
-        run: echo "Done"
+      - name: Save last_seen cache
+        if: always()                    
+        uses: actions/cache/save@v4
+        with:
+          path: .last_seen.txt
+          key: last-seen-cache
